@@ -340,13 +340,34 @@ class LineContents:
             cs = CellStyle(style)
             for i in range(style.repeats):  # pylint: disable=unused-variable
                 self.__styles.append(cs)
+        self.__string = self.__build_string()
+
+    def __build_string(self) -> str:
+        if not self.__length_of_cell:
+            return self.__proto.text
+
+        parts = []
+        offset = 0
+        for length in self.__length_of_cell:
+            if length == 0:
+                parts.append(" ")
+                continue
+            limit = offset + length
+            parts.append(self.__proto.text[offset:limit])
+            offset = limit
+
+        if offset < len(self.__proto.text):
+            parts.append(self.__proto.text[offset:])
+
+        return "".join(parts)
 
     @property
     def string(self) -> str:
         """
-        :returns: The line's contents as a string.
+        :returns: The line's contents as a display string. Uninitialized cells
+            in the middle of the line are rendered as spaces.
         """
-        return self.__proto.text
+        return self.__string
 
     def string_at(self, x: int) -> str:  # pylint: disable=invalid-name
         """Returns the string of the cell at index `x`.
