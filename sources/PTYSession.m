@@ -19923,7 +19923,9 @@ static const NSTimeInterval PTYSessionFocusReportBellSquelchTimeIntervalThreshol
         prev = screenChars[i];
 
         unichar c = screenChars[i].code;
-        if (!screenChars[i].complexChar && c >= ITERM2_PRIVATE_BEGIN && c <= ITERM2_PRIVATE_END) {
+        if (!screenChars[i].complexChar && c == 0) {
+            numCodePoints = 0;
+        } else if (!screenChars[i].complexChar && c >= ITERM2_PRIVATE_BEGIN && c <= ITERM2_PRIVATE_END) {
             numCodePoints = 0;
         } else if (screenChars[i].image) {
             numCodePoints = 0;

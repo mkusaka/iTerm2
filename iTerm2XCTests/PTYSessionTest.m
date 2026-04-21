@@ -2,6 +2,7 @@
 #import "PTYSession.h"
 
 #import "ITAddressBookMgr.h"
+#import "iTermExternalAttributeIndex.h"
 #import "iTermPasteHelper.h"
 #import "iTermProfilePreferences.h"
 #import "iTermWarning.h"
@@ -51,6 +52,11 @@ static NSDictionary *PTYSessionTestEncodedColor(CGFloat red, CGFloat green, CGFl
 
 @interface PTYSession (Internal)
 - (void)setPasteHelper:(iTermPasteHelper *)pasteHelper;
+- (NSString *)stringForLine:(const screen_char_t *)screenChars
+                     length:(int)length
+                    eaIndex:(iTermExternalAttributeIndex *)eaIndex
+                  cppsArray:(NSMutableArray<ITMCodePointsPerCell *> *)cppsArray
+                stylesArray:(NSMutableArray<ITMCellStyle *> *)styleArray;
 @end
 
 @implementation PTYSessionTest {
@@ -196,6 +202,37 @@ static NSDictionary *PTYSessionTestEncodedColor(CGFloat red, CGFloat green, CGFl
     };
 
     XCTAssertFalse([iTermProfilePreferences boolForTabColorKey:KEY_USE_TAB_COLOR dark:YES profile:profile]);
+}
+
+- (void)testStringForLineSkipsUninitializedCellsInTextButPreservesCellMap {
+    screen_char_t line[9] = { 0 };
+    line[0].code = 'a';
+    line[1].code = 'b';
+    line[2].code = 'c';
+    line[6].code = 'x';
+    line[7].code = 'y';
+    line[8].code = 'z';
+
+    iTermExternalAttributeIndex *eaIndex = [[[iTermExternalAttributeIndex alloc] init] autorelease];
+    NSMutableArray<ITMCodePointsPerCell *> *cppsArray = [NSMutableArray array];
+    NSMutableArray<ITMCellStyle *> *styleArray = [NSMutableArray array];
+
+    NSString *string = [_session stringForLine:line
+                                        length:sizeof(line) / sizeof(*line)
+                                       eaIndex:eaIndex
+                                     cppsArray:cppsArray
+                                   stylesArray:styleArray];
+
+    XCTAssertEqualObjects(string, @"abcxyz");
+    XCTAssertEqual(cppsArray.count, 3);
+    XCTAssertEqual(cppsArray[0].numCodePoints, 1);
+    XCTAssertEqual(cppsArray[0].repeats, 3);
+    XCTAssertEqual(cppsArray[1].numCodePoints, 0);
+    XCTAssertEqual(cppsArray[1].repeats, 3);
+    XCTAssertEqual(cppsArray[2].numCodePoints, 1);
+    XCTAssertEqual(cppsArray[2].repeats, 3);
+    XCTAssertEqual(styleArray.count, 1);
+    XCTAssertEqual(styleArray[0].repeats, 9);
 }
 
 #pragma mark - iTermWarningHandler
