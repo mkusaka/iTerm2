@@ -1,58 +1,50 @@
 name: Tests
-
 on:
   push:
     branches: [master, ci-test]
   pull_request:
     branches: [master]
-
 jobs:
   python-api-tests:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.11'
-
       - name: Install dependencies
         working-directory: api/library/python/iterm2
         run: |
           pip install -r requirements-dev.txt
           pip install -e .
-
       - name: Run tests
         working-directory: api/library/python/iterm2
         run: python -m pytest tests/ -v
-
       - name: Run mypy
         working-directory: api/library/python/iterm2
         run: python -m mypy iterm2/
-
+    permissions: {}
+    timeout-minutes: 60
   xcode-tests:
     runs-on: macos-15
-
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           submodules: recursive
-
+          persist-credentials: false
       - name: Select Xcode 26
         run: sudo xcode-select -s /Applications/Xcode_26.2.app/Contents/Developer
-
       - name: Show Xcode version
         run: xcodebuild -version
-
       - name: Kill orphan Xcode processes
         run: |
           killall ibtoold 2>/dev/null || true
           killall AssetCatalogSimulatorAgent 2>/dev/null || true
-
       - name: Run tests
         run: |
           # Retry up to 3 times, but only for flaky ibtoold/asset catalog crashes
@@ -98,11 +90,13 @@ jobs:
               exit 1
             fi
           done
-
       - name: Upload test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with:
           name: test-results
           path: TestResults.xcresult
           retention-days: 7
+    permissions: {}
+    timeout-minutes: 60
+permissions: {}
